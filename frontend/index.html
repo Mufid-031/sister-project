@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Absensi Terdistribusi (Multi-Kernel & Microservices)</title>
+    <title>Sistem Presensi Terdistribusi - Kelompok 5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +26,7 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
     <!-- Top Navigation & Live Observability Bar -->
-    <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur sticky top-0 z-50">
+    <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-bold">
@@ -35,33 +35,49 @@
                 <div>
                     <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
                         Presensi Terdistribusi
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">UTS Sister E</span>
+                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">Kelompok 5</span>
                     </h1>
-                    <p class="text-xs text-slate-400">Proxmox VE LXC • Multi-Kernel • Tailscale WireGuard Mesh</p>
+                    <p class="text-xs text-slate-400">UTS Sister E • Proxmox VE Multi-Kernel • Tailscale WireGuard Mesh</p>
                 </div>
             </div>
 
-            <!-- Cluster Observability Badges -->
+            <!-- Cluster Observability Badges & Role State -->
             <div class="flex flex-wrap items-center gap-2 text-xs">
                 <!-- Frontend Node -->
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Frontend Web Server">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Frontend Web Server (Alpine)">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-online"></span>
                     <span class="text-slate-400">LXC 100 [Alpine]:</span>
-                    <span class="font-mono text-emerald-400 font-semibold">100.91.242.11</span>
+                    <span class="font-mono text-emerald-400 font-semibold">100.119.108.66</span>
                 </div>
                 <!-- Backend Node -->
-                <div id="badge-backend" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Backend API Worker">
+                <div id="badge-backend" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Backend API Worker (Ubuntu)">
                     <span id="dot-backend" class="w-2 h-2 rounded-full bg-emerald-400 pulse-online"></span>
                     <span class="text-slate-400">LXC 101 [Ubuntu]:</span>
-                    <span class="font-mono text-emerald-400 font-semibold">100.118.230.58</span>
+                    <span class="font-mono text-emerald-400 font-semibold">100.119.201.56</span>
                     <span id="latency-backend" class="text-[10px] text-slate-400 font-mono">-- ms</span>
                 </div>
                 <!-- DB Node -->
-                <div id="badge-db" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="PostgreSQL Database">
+                <div id="badge-db" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="PostgreSQL Database (Debian)">
                     <span id="dot-db" class="w-2 h-2 rounded-full bg-emerald-400 pulse-online"></span>
                     <span class="text-slate-400">LXC 102 [Debian]:</span>
-                    <span class="font-mono text-emerald-400 font-semibold">100.122.119.32</span>
+                    <span class="font-mono text-emerald-400 font-semibold">100.115.151.38</span>
                     <span id="latency-db" class="text-[10px] text-slate-400 font-mono">-- ms</span>
+                </div>
+
+                <!-- Role Switcher Button -->
+                <div id="role-container" class="ml-1">
+                    <button onclick="openLoginModal()" id="btn-login-trigger" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-xs flex items-center gap-1.5 transition shadow-lg shadow-indigo-600/20">
+                        <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+                        <span>Login Dosen</span>
+                    </button>
+                    <div id="role-dosen-badge" class="hidden flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 font-semibold text-xs flex items-center gap-1.5">
+                            <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i> Mode Dosen (Kelompok 5)
+                        </span>
+                        <button onclick="logoutRole()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 text-xs transition" title="Logout kembali ke Mode Murid">
+                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -73,12 +89,15 @@
             </button>
             <button onclick="switchTab('dosen')" id="tab-btn-dosen" class="tab-btn px-4 py-2.5 text-sm font-semibold rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
                 <i data-lucide="calendar" class="w-4 h-4"></i> Kelola Sesi Kuliah
+                <span id="lock-icon-dosen" class="text-[10px] text-amber-400 font-normal ml-1">🔒</span>
             </button>
             <button onclick="switchTab('rekap')" id="tab-btn-rekap" class="tab-btn px-4 py-2.5 text-sm font-semibold rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
                 <i data-lucide="clipboard-list" class="w-4 h-4"></i> Rekap Kehadiran
+                <span id="lock-icon-rekap" class="text-[10px] text-amber-400 font-normal ml-1">🔒</span>
             </button>
             <button onclick="switchTab('topologi')" id="tab-btn-topologi" class="tab-btn px-4 py-2.5 text-sm font-semibold rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
                 <i data-lucide="cpu" class="w-4 h-4"></i> Topologi & Demo Sister
+                <span id="lock-icon-topologi" class="text-[10px] text-amber-400 font-normal ml-1">🔒</span>
             </button>
         </div>
     </header>
@@ -97,7 +116,7 @@
                                 <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-400"></i>
                                 Presensi Kehadiran Mahasiswa
                             </h2>
-                            <p class="text-xs text-slate-400 mt-1">Permintaan akan diproses oleh Backend LXC 101 dan dicatat di Database LXC 102 via Tailscale.</p>
+                            <p class="text-xs text-slate-400 mt-1">Permintaan diproses oleh Backend LXC 101 dan dicatat di Database LXC 102 via Tailscale WireGuard Mesh.</p>
                         </div>
                         <span class="px-2.5 py-1 rounded-md text-xs font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">POST /api/attend</span>
                     </div>
@@ -116,14 +135,14 @@
 
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Nama Lengkap Mahasiswa</label>
-                            <input type="text" id="student_name" required placeholder="Contoh: Mufid Risqi" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white text-sm transition">
+                            <input type="text" id="student_name" required placeholder="Contoh: Fajar Pratama" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white text-sm transition">
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Token Sesi Absensi</label>
                                 <input type="text" id="token" required placeholder="Contoh: SISTER24" class="uppercase tracking-widest font-mono font-bold w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-indigo-400 text-sm transition">
-                                <p class="text-[11px] text-slate-500 mt-1">Dapatkan token dari dosen atau tab "Kelola Sesi Kuliah".</p>
+                                <p class="text-[11px] text-slate-500 mt-1">Gunakan token sesi perkuliahan aktif.</p>
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Status Kehadiran</label>
@@ -153,7 +172,7 @@
                         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                             <h3 class="font-bold text-white text-sm flex items-center gap-2">
                                 <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
-                                Sesi Aktif Saat Ini
+                                Sesi Perkuliahan Aktif
                             </h3>
                             <button onclick="loadSessions()" class="text-xs text-indigo-400 hover:text-indigo-300">
                                 <i data-lucide="refresh-cw" class="w-3 h-3 inline"></i>
@@ -167,13 +186,13 @@
                     <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl backdrop-blur">
                         <h3 class="font-bold text-white text-sm flex items-center gap-2 pb-3 border-b border-slate-800">
                             <i data-lucide="users" class="w-4 h-4 text-blue-400"></i>
-                            Contoh Akun Uji Coba Mahasiswa
+                            Akun Uji Coba Mahasiswa (Kelompok 5)
                         </h3>
                         <div class="mt-3 space-y-2 text-xs">
-                            <div onclick="fillStudent('22001', 'Mufid Risqi')" class="p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
+                            <div onclick="fillStudent('22001', 'Fajar Pratama')" class="p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
                                 <div>
                                     <div class="font-mono text-indigo-400 font-semibold">22001</div>
-                                    <div class="text-slate-300">Mufid Risqi</div>
+                                    <div class="text-slate-300">Fajar Pratama</div>
                                 </div>
                                 <span class="text-[10px] text-slate-500">Klik isi</span>
                             </div>
@@ -191,6 +210,13 @@
                                 </div>
                                 <span class="text-[10px] text-slate-500">Klik isi</span>
                             </div>
+                            <div onclick="fillStudent('22004', 'Budi Santoso')" class="p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
+                                <div>
+                                    <div class="font-mono text-indigo-400 font-semibold">22004</div>
+                                    <div class="text-slate-300">Budi Santoso</div>
+                                </div>
+                                <span class="text-[10px] text-slate-500">Klik isi</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -202,10 +228,13 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Create Session Form -->
                 <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                    <h2 class="text-lg font-bold text-white flex items-center gap-2 pb-4 border-b border-slate-800">
-                        <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-400"></i>
-                        Buka Sesi Presensi Baru
-                    </h2>
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-400"></i>
+                            Buka Sesi Presensi Baru
+                        </h2>
+                        <span class="text-[11px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium border border-amber-500/20">Akses Dosen</span>
+                    </div>
                     <form onsubmit="handleCreateSession(event)" class="mt-4 space-y-4">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Mata Kuliah</label>
@@ -215,7 +244,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Judul / Topik Pertemuan</label>
-                            <input type="text" id="session_title" required placeholder="Contoh: Praktikum Proxmox & Tailscale" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
+                            <input type="text" id="session_title" required placeholder="Contoh: Praktikum Microservices & WireGuard" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
                         </div>
                         <div>
                             <div class="flex items-center justify-between mb-1">
@@ -272,7 +301,7 @@
                             <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Data
                         </button>
                         <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs flex items-center gap-1.5 transition">
-                            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak / Export
+                            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak / Export PDF
                         </button>
                     </div>
                 </div>
@@ -309,7 +338,7 @@
                     <div>
                         <h2 class="text-lg font-bold text-white flex items-center gap-2">
                             <i data-lucide="network" class="w-5 h-5 text-indigo-400"></i>
-                            Peta Arsitektur Sistem Terdistribusi (Multi-Kernel & Microservices)
+                            Peta Arsitektur Sistem Terdistribusi (Kelompok 5)
                         </h2>
                         <p class="text-xs text-slate-400 mt-1">Infrastruktur virtualisasi Proxmox VE dengan isolasi 3 kontainer independen yang terhubung melalui Tailscale WireGuard Mesh.</p>
                     </div>
@@ -345,7 +374,7 @@
                             </div>
                             <div class="flex justify-between py-1 border-b border-slate-900">
                                 <span class="text-slate-400">IP Tailscale:</span>
-                                <span class="font-mono text-emerald-400 font-semibold">100.91.242.11</span>
+                                <span class="font-mono text-emerald-400 font-semibold">100.119.108.66</span>
                             </div>
                             <div class="flex justify-between py-1 border-b border-slate-900">
                                 <span class="text-slate-400">IP Lokal LAN:</span>
@@ -383,7 +412,7 @@
                             </div>
                             <div class="flex justify-between py-1 border-b border-slate-900">
                                 <span class="text-slate-400">IP Tailscale:</span>
-                                <span class="font-mono text-emerald-400 font-semibold">100.118.230.58</span>
+                                <span class="font-mono text-emerald-400 font-semibold">100.119.201.56</span>
                             </div>
                             <div class="flex justify-between py-1 border-b border-slate-900">
                                 <span class="text-slate-400">IP Lokal LAN:</span>
@@ -421,7 +450,7 @@
                             </div>
                             <div class="flex justify-between py-1 border-b border-slate-900">
                                 <span class="text-slate-400">IP Tailscale:</span>
-                                <span class="font-mono text-emerald-400 font-semibold">100.122.119.32</span>
+                                <span class="font-mono text-emerald-400 font-semibold">100.115.151.38</span>
                             </div>
                             <div class="flex justify-between py-1 border-b border-slate-900">
                                 <span class="text-slate-400">IP Lokal LAN:</span>
@@ -448,7 +477,7 @@
                             <strong class="text-white">Pertanyaan:</strong> "Apakah ketiga kontainer ini menggunakan kernel yang berbeda?"
                         </p>
                         <p class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-400">
-                            <strong class="text-indigo-400">Jawaban Teknis:</strong> Di tingkat OS virtualization LXC, ketiga kontainer berbagi (*shared*) satu Kernel Linux milik Host Proxmox (`pve-lab`). Namun, di level user-space runtime, sistem menerapkan <strong class="text-white">Multi-Userland Execution</strong>:
+                            <strong class="text-indigo-400">Jawaban Teknis:</strong> Di tingkat OS virtualization LXC, ketiga kontainer berbagi (*shared*) satu Kernel Linux milik Host Proxmox (`pve-lab`). Namun, di level user-space runtime, sistem kami menerapkan <strong class="text-white">Multi-Userland Execution</strong>:
                             Alpine menggunakan <span class="text-indigo-300 font-mono">musl libc</span> yang ultra-ringan, sementara Ubuntu dan Debian menggunakan <span class="text-indigo-300 font-mono">GNU glibc</span>. Isolasi dilakukan via Linux Namespaces (PID, Mount, UTS, IPC, Net) dan cgroups v2.
                         </p>
                     </div>
@@ -464,7 +493,7 @@
                             <strong class="text-white">Pertanyaan:</strong> "Mengapa menggunakan Tailscale dan bukan IP lokal biasa?"
                         </p>
                         <p class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-400">
-                            <strong class="text-emerald-400">Jawaban Teknis:</strong> Tailscale membangun <strong class="text-white">Zero-Trust WireGuard Overlay Mesh Network</strong>. Ini memungkinkan komunikasi antar-node terisolasi dari LAN luar, terenkripsi point-to-point tanpa perlu port forwarding publik, serta port Database 5432 di-bind khusus ke interface Tailscale sehingga aman dari serangan sniffing atau lateral movement.
+                            <strong class="text-emerald-400">Jawaban Teknis:</strong> Tailscale membangun <strong class="text-white">Zero-Trust WireGuard Overlay Mesh Network</strong>. Ini memungkinkan komunikasi antar-node terisolasi dari LAN luar, terenkripsi point-to-point tanpa perlu port forwarding publik, serta port Database 5432 di-bind khusus ke interface Tailscale sehingga aman dari serangan sniffing atau unauthorized access.
                         </p>
                     </div>
                 </div>
@@ -475,7 +504,7 @@
                 <div class="flex items-center justify-between pb-4 border-b border-slate-800">
                     <h3 class="font-bold text-white text-sm flex items-center gap-2">
                         <i data-lucide="terminal" class="w-4 h-4 text-indigo-400"></i>
-                        Audit Log Transaksi Terdistribusi (node_logs di PostgreSQL)
+                        Audit Log Transaksi Terdistribusi (PostgreSQL Node LXC 102)
                     </h3>
                     <button onclick="loadAuditLogs()" class="text-xs text-indigo-400 hover:text-indigo-300">
                         <i data-lucide="refresh-cw" class="w-3 h-3 inline"></i> Refresh Log
@@ -489,14 +518,58 @@
 
     </main>
 
+    <!-- Modal Login Dosen / Guru -->
+    <div id="login-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 max-w-md w-full p-6 shadow-2xl relative">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <div class="h-8 w-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                        <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-sm">Autentikasi Pengajar / Dosen</h3>
+                        <p class="text-[11px] text-slate-400">Masuk untuk mengelola sesi dan rekap absensi</p>
+                    </div>
+                </div>
+                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Error message box -->
+            <div id="login-error-box" class="hidden mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs"></div>
+
+            <form onsubmit="handleLoginSubmit(event)" class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Username</label>
+                    <input type="text" id="login_username" required placeholder="dosen" value="dosen" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Password</label>
+                    <input type="password" id="login_password" required placeholder="kelompok5" value="kelompok5" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
+                </div>
+                
+                <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+                    <span>💡 Kredensial Demo: <strong>dosen / kelompok5</strong></span>
+                    <button type="button" onclick="document.getElementById('login_username').value='dosen'; document.getElementById('login_password').value='kelompok5';" class="text-indigo-400 hover:underline">Isi</button>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeLoginModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Batal</button>
+                    <button type="submit" id="btn-login-submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20">Masuk sebagai Dosen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="border-t border-slate-800/80 bg-slate-950 py-4 mt-auto">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-            <div>Sistem Terdistribusi E • Ujian Tengah Semester (UTS) • Proxmox VE 8 & Tailscale WireGuard</div>
+            <div>Sistem Terdistribusi E • Ujian Tengah Semester (UTS) • Kelompok 5 • Proxmox VE & Tailscale WireGuard</div>
             <div class="flex items-center gap-3">
                 <a href="/docs" target="_blank" class="hover:text-indigo-400 text-slate-400 font-mono">Swagger API Docs ↗</a>
                 <span>•</span>
-                <span>Mufid Risqi (Teknik Informatika)</span>
+                <span class="text-indigo-400 font-medium">Kelompok 5 (Teknik Informatika)</span>
             </div>
         </div>
     </footer>
@@ -504,8 +577,84 @@
     <!-- Application JavaScript Logic -->
     <script>
         const API_BASE = '/api';
+        let currentUserRole = 'student'; // 'student' or 'dosen'
+
+        function checkAuth() {
+            const savedRole = sessionStorage.getItem('sister_user_role');
+            if (savedRole === 'dosen') {
+                currentUserRole = 'dosen';
+                document.getElementById('btn-login-trigger').classList.add('hidden');
+                document.getElementById('role-dosen-badge').classList.remove('hidden');
+                document.getElementById('lock-icon-dosen').classList.add('hidden');
+                document.getElementById('lock-icon-rekap').classList.add('hidden');
+                document.getElementById('lock-icon-topologi').classList.add('hidden');
+            } else {
+                currentUserRole = 'student';
+                document.getElementById('btn-login-trigger').classList.remove('hidden');
+                document.getElementById('role-dosen-badge').classList.add('hidden');
+                document.getElementById('lock-icon-dosen').classList.remove('hidden');
+                document.getElementById('lock-icon-rekap').classList.remove('hidden');
+                document.getElementById('lock-icon-topologi').classList.remove('hidden');
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.remove('hidden');
+            document.getElementById('login-error-box').classList.add('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.add('hidden');
+        }
+
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            const u = document.getElementById('login_username').value;
+            const p = document.getElementById('login_password').value;
+            const errBox = document.getElementById('login_error-box');
+            const btn = document.getElementById('btn-login-submit');
+
+            btn.disabled = true;
+            btn.innerText = 'Memverifikasi...';
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Login gagal');
+
+                sessionStorage.setItem('sister_user_role', 'dosen');
+                sessionStorage.setItem('sister_user_token', data.token);
+                checkAuth();
+                closeLoginModal();
+                alert("Berhasil login sebagai Dosen Pengampu (Kelompok 5)!");
+            } catch (err) {
+                errBox.innerText = err.message;
+                errBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Masuk sebagai Dosen';
+            }
+        }
+
+        function logoutRole() {
+            sessionStorage.removeItem('sister_user_role');
+            sessionStorage.removeItem('sister_user_token');
+            checkAuth();
+            switchTab('presensi');
+            alert("Anda telah kembali ke Mode Mahasiswa (Murid).");
+        }
 
         function switchTab(tabId) {
+            // Check permission: tabs other than 'presensi' require 'dosen' role
+            if (tabId !== 'presensi' && currentUserRole !== 'dosen') {
+                openLoginModal();
+                return;
+            }
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('text-indigo-400', 'border-b-2', 'border-indigo-500', 'bg-slate-800/50');
@@ -688,7 +837,7 @@
             const status = document.getElementById('status').value;
 
             btn.disabled = true;
-            btn.innerHTML = '<span>Memproses via Tailscale...</span>';
+            btn.innerHTML = '<span>Memproses via Tailscale Mesh...</span>';
 
             try {
                 const res = await fetch(`${API_BASE}/attend`, {
@@ -730,32 +879,20 @@
             tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">Memuat data dari PostgreSQL via Tailscale...</td></tr>';
             
             try {
-                // Fetch first active session or all sessions
-                const sessRes = await fetch(`${API_BASE}/sessions`);
-                const sessions = await sessRes.json();
-                
-                let allRows = [];
-                for (const s of sessions) {
-                    const dRes = await fetch(`${API_BASE}/sessions/${s.id}`);
-                    const detail = await dRes.json();
-                    if (detail.attendances) {
-                        detail.attendances.forEach(a => {
-                            allRows.push({ ...a, course: detail.session.course_code, session_title: detail.session.title });
-                        });
-                    }
-                }
+                const res = await fetch(`${API_BASE}/attendances`);
+                const rows = await res.json();
 
-                if (allRows.length === 0) {
+                if (!rows || rows.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">Belum ada mahasiswa yang presensi.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = allRows.map(r => `
+                tbody.innerHTML = rows.map(r => `
                     <tr class="hover:bg-slate-900/50 transition">
                         <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${new Date(r.time).toLocaleString('id-ID')}</td>
                         <td class="py-3 px-4 font-mono text-indigo-400 font-semibold">${r.nim}</td>
                         <td class="py-3 px-4 text-white font-medium">${r.name}</td>
-                        <td class="py-3 px-4 text-slate-300">${r.course} - ${r.session_title}</td>
+                        <td class="py-3 px-4 text-slate-300">${r.course || 'IF3105'} - ${r.session_title}</td>
                         <td class="py-3 px-4">
                             <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${r.status === 'HADIR' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400'}">
                                 ${r.status}
@@ -798,6 +935,7 @@
         // Initial setup
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
+            checkAuth();
             refreshClusterTelemetry();
             loadCourses();
             loadSessions();

@@ -11,13 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 # Database Configuration via Tailscale Mesh
-DB_HOST = os.getenv("DB_HOST", "100.122.119.32")
+DB_HOST = os.getenv("DB_HOST", "100.115.151.38")
 DB_PORT = int(os.getenv("DB_PORT", 5432))
 DB_NAME = os.getenv("DB_NAME", "attendance_db")
 DB_USER = os.getenv("DB_USER", "sister_user")
 DB_PASS = os.getenv("DB_PASS", "sister_secure_pass_2026")
 
-FRONTEND_TAILSCALE_IP = "100.91.242.11"
+FRONTEND_TAILSCALE_IP = "100.119.108.66"
+BACKEND_TAILSCALE_IP = "100.119.201.56"
 NODE_NAME = "backend-ubuntu-101"
 
 # Connection Pool
@@ -46,9 +47,9 @@ async def lifespan(app: FastAPI):
         print("[LIFESPAN] Database pool closed.")
 
 app = FastAPI(
-    title="Sistem Absensi Terdistribusi (Sister Project)",
-    description="Microservice Backend yang menghubungkan Frontend (Alpine), Backend (Ubuntu), dan Database (Debian) via Tailscale Wireguard Mesh Network.",
-    version="1.0.0",
+    title="Sistem Absensi Terdistribusi (Kelompok 5)",
+    description="Microservice Backend yang menghubungkan Frontend (Alpine), Backend (Ubuntu), dan Database (Debian) via Tailscale WireGuard Mesh Network.",
+    version="1.1.0",
     lifespan=lifespan
 )
 
@@ -70,6 +71,10 @@ def get_db():
         db_pool.putconn(conn)
 
 # Pydantic Schemas
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 class CourseCreate(BaseModel):
     code: str
     name: str
@@ -106,13 +111,34 @@ def measure_tcp_latency(host: str, port: int, timeout: float = 1.0) -> dict:
 @app.get("/")
 def root_info():
     return {
-        "service": "Distributed Attendance API",
+        "service": "Distributed Attendance API - Kelompok 5",
         "node": NODE_NAME,
         "os": "Ubuntu 24.04 LTS (LXC 101)",
-        "tailscale_ip": "100.118.230.58",
+        "tailscale_ip": BACKEND_TAILSCALE_IP,
         "status": "online",
         "docs": "/docs"
     }
+
+@app.post("/api/auth/login")
+def auth_login(req: LoginRequest):
+    """Simple Role Authentication for Dosen / Guru / Admin"""
+    user_clean = req.username.strip().lower()
+    pass_clean = req.password.strip()
+
+    valid_teachers = ["dosen", "guru", "admin", "kelompok5", "dosen123"]
+    if user_clean in valid_teachers and (pass_clean in ["dosen123", "kelompok5", "admin123"]):
+        return {
+            "success": True,
+            "role": "dosen",
+            "name": "Dosen Pengampu (Kelompok 5)",
+            "token": "session-dosen-kelompok5-active",
+            "message": "Login berhasil sebagai Pengajar / Admin Kelompok 5"
+        }
+    
+    raise HTTPException(
+        status_code=401, 
+        detail="Username atau Password salah! (Default Demo: Username 'dosen', Password 'kelompok5')"
+    )
 
 @app.get("/api/health")
 def healthcheck():
@@ -145,7 +171,7 @@ def healthcheck():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "backend_node": {
             "name": NODE_NAME,
-            "ip": "100.118.230.58",
+            "ip": BACKEND_TAILSCALE_IP,
             "memory": mem_info
         },
         "database_node": {
@@ -170,7 +196,7 @@ def get_cluster_status():
                 "distro": "Alpine Linux (musl libc)",
                 "role": "Web Interface & Reverse Proxy",
                 "tailscale_ip": FRONTEND_TAILSCALE_IP,
-                "service": "Nginx (Port 80)",
+                "service": "Nginx (Port 80 / 443)",
                 "network": fe_check
             },
             {
@@ -178,7 +204,7 @@ def get_cluster_status():
                 "name": "backend",
                 "distro": "Ubuntu 24.04 (glibc)",
                 "role": "REST API Business Logic & Dispatcher",
-                "tailscale_ip": "100.118.230.58",
+                "tailscale_ip": BACKEND_TAILSCALE_IP,
                 "service": "FastAPI + Uvicorn (Port 8000)",
                 "network": {"reachable": True, "latency_ms": 0.0}
             },
@@ -344,7 +370,11 @@ def submit_attendance(att: AttendanceSubmit, request: Request):
     conn = next(get_db())
     token_clean = att.token.strip().upper()
     nim_clean = att.nim.strip()
+    name_clean = att.student_name.strip()
     client_host = request.client.host if request.client else "unknown"
+
+    if not nim_clean or not name_clean:
+        raise HTTPException(status_code=400, detail="NIM dan Nama Mahasiswa tidak boleh kosong!")
 
     try:
         with conn.cursor() as cur:
@@ -359,7 +389,7 @@ def submit_attendance(att: AttendanceSubmit, request: Request):
             )
             sess = cur.fetchone()
             if not sess:
-                raise HTTPException(status_code=404, detail="Token absensi tidak valid / tidak ditemukan!")
+                raise HTTPException(status_code=404, detail="Token absensi tidak valid atau tidak ditemukan!")
             
             sess_id, sess_title, is_active, expires_at = sess
             if not is_active:
@@ -383,7 +413,7 @@ def submit_attendance(att: AttendanceSubmit, request: Request):
                 VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id, created_at;
                 """,
-                (sess_id, nim_clean, att.student_name.strip(), att.status, client_host, NODE_NAME)
+                (sess_id, nim_clean, name_clean, att.status, client_host, NODE_NAME)
             )
             att_id, created_at = cur.fetchone()
 
@@ -399,7 +429,7 @@ def submit_attendance(att: AttendanceSubmit, request: Request):
             conn.commit()
             return {
                 "success": True,
-                "message": f"Presensi berhasil dicatat untuk {att.student_name} (NIM: {nim_clean})!",
+                "message": f"Presensi berhasil dicatat untuk {name_clean} (NIM: {nim_clean})!",
                 "attendance_id": att_id,
                 "session_title": sess_title,
                 "processed_by": NODE_NAME,
@@ -411,6 +441,35 @@ def submit_attendance(att: AttendanceSubmit, request: Request):
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+@app.get("/api/attendances")
+def get_all_attendances(limit: int = 100):
+    conn = next(get_db())
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT a.id, a.nim, a.student_name, a.status, a.client_ip, a.processed_by_node, a.created_at,
+                   s.title as session_title, c.code as course_code
+            FROM attendances a
+            JOIN sessions s ON a.session_id = s.id
+            JOIN courses c ON s.course_id = c.id
+            ORDER BY a.created_at DESC
+            LIMIT %s;
+        """, (limit,))
+        rows = cur.fetchall()
+        return [
+            {
+                "id": r[0],
+                "nim": r[1],
+                "name": r[2],
+                "status": r[3],
+                "client_ip": r[4],
+                "node": r[5],
+                "time": r[6].isoformat(),
+                "session_title": r[7],
+                "course": r[8]
+            }
+            for r in rows
+        ]
 
 @app.get("/api/students")
 def get_students():

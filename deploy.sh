@@ -6,7 +6,7 @@
 
 set -e
 
-PROXMOX_HOST="10.150.99.130"
+PROXMOX_HOST="${PROXMOX_HOST:-172.20.10.3}"
 PROXMOX_USER="root"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -38,7 +38,7 @@ if echo "$HEALTH_RES" | grep -q '"status":"healthy"'; then
     echo "🎉 SISTEM ONLINE & SEHAT!"
     echo "   - Web HTTPS : https://${PROXMOX_HOST}:3443"
     echo "   - Web HTTP  : http://${PROXMOX_HOST}:3000"
-    echo "   - Tailscale : http://100.91.242.11"
+    echo "   - Tailscale : http://100.119.108.66"
 else
     echo "⚠️ Peringatan: Respon healthcheck tidak normal. Output:"
     echo "$HEALTH_RES"
