@@ -6,7 +6,7 @@
 
 set -e
 
-PROXMOX_HOST="192.168.100.57"
+PROXMOX_HOST="10.150.99.130"
 PROXMOX_USER="root"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
