@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Dosen & Observabilitas - Kelompok 5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        code, .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .sidebar-active {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: #818cf8;
+            border-left: 3px solid #6366f1;
+        }
+    </style>
+    <!-- Auth Guard -->
+    <script>
+        if (localStorage.getItem('sister_dosen_auth') !== 'true') {
+            window.location.href = '/login.html';
+        }
+    </script>
+</head>
+<body class="min-h-full flex flex-col md:flex-row bg-slate-950 text-slate-200 antialiased selection:bg-indigo-600 selection:text-white">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+        <!-- Brand -->
+        <div class="h-16 border-b border-slate-800 flex items-center px-6 gap-3">
+            <div class="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-600/30">
+                <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <div class="font-bold text-white text-sm leading-tight">Konsol Dosen</div>
+                <div class="text-[11px] text-slate-400">Kelompok 5 • Sister E</div>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        <div class="px-6 py-4 border-b border-slate-800/60 bg-slate-950/40">
+            <div class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Pengajar Aktif</div>
+            <div id="dosen-username" class="font-semibold text-white text-xs mt-0.5">Dosen Pengampu</div>
+            <div class="text-[11px] text-emerald-400 font-mono mt-0.5 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Otoritas Penuh
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 px-3 py-4 space-y-1 text-xs font-semibold">
+            <button onclick="navigateView('overview')" id="nav-overview" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-slate-400 hover:text-white hover:bg-slate-800/60 sidebar-active">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                <span>Ringkasan Eksekutif</span>
+            </button>
+            <button onclick="navigateView('sesi')" id="nav-sesi" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+                <span>Kelola Sesi Perkuliahan</span>
+            </button>
+            <button onclick="navigateView('rekap')" id="nav-rekap" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+                <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                <span>Rekap Kehadiran</span>
+            </button>
+            <button onclick="navigateView('cluster')" id="nav-cluster" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+                <i data-lucide="network" class="w-4 h-4"></i>
+                <span>Observabilitas Cluster</span>
+            </button>
+        </nav>
+
+        <!-- Tailscale Mesh Status Widget in Sidebar -->
+        <div class="p-4 border-t border-slate-800 bg-slate-950/60 space-y-2 text-[11px]">
+            <div class="text-slate-400 font-semibold flex items-center justify-between">
+                <span>Mesh Network:</span>
+                <span class="text-emerald-400 font-mono font-bold">Tailscale</span>
+            </div>
+            <div class="space-y-1 font-mono text-[10px] text-slate-400">
+                <div class="flex justify-between"><span>FE (Alpine):</span> <span class="text-slate-300">100.119.108.66</span></div>
+                <div class="flex justify-between"><span>BE (Ubuntu):</span> <span class="text-slate-300">100.119.201.56</span></div>
+                <div class="flex justify-between"><span>DB (Debian):</span> <span class="text-slate-300">100.115.151.38</span></div>
+            </div>
+        </div>
+
+        <!-- Logout Button -->
+        <div class="p-3 border-t border-slate-800">
+            <button onclick="handleLogout()" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 text-xs font-semibold transition">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+                <span>Keluar (Logout)</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Top Header Bar -->
+        <header class="h-16 border-b border-slate-800 bg-slate-900/40 backdrop-blur px-6 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h1 id="page-title" class="font-bold text-white text-base">Ringkasan Eksekutif</h1>
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">Panel Pengajar</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/index.html" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    <span>Buka Portal Mahasiswa</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- View Sections -->
+        <main class="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto">
+
+            <!-- 1. VIEW: OVERVIEW -->
+            <section id="view-overview" class="view-section space-y-6">
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg">
+                        <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                            <span>Total Presensi Mahasiswa</span>
+                            <i data-lucide="users" class="w-4 h-4 text-indigo-400"></i>
+                        </div>
+                        <div id="stat-total-attend" class="text-2xl font-bold text-white">0</div>
+                        <div class="text-[11px] text-slate-500 mt-1">Tercatat di PostgreSQL Debian</div>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg">
+                        <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                            <span>Sesi Perkuliahan Aktif</span>
+                            <i data-lucide="radio" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        <div id="stat-active-sessions" class="text-2xl font-bold text-emerald-400">0</div>
+                        <div class="text-[11px] text-slate-500 mt-1">Sedang membuka presensi</div>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg">
+                        <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                            <span>Cluster Multi-Kernel</span>
+                            <i data-lucide="server" class="w-4 h-4 text-blue-400"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-white">3 / 3</div>
+                        <div class="text-[11px] text-emerald-400 mt-1">LXC Alpine, Ubuntu, Debian</div>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg">
+                        <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                            <span>Latensi Query Database</span>
+                            <i data-lucide="activity" class="w-4 h-4 text-amber-400"></i>
+                        </div>
+                        <div id="stat-db-latency" class="text-2xl font-bold text-white">-- ms</div>
+                        <div class="text-[11px] text-slate-500 mt-1">Via Tailscale WireGuard Mesh</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity & Quick Sesi Overview -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl">
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                                <i data-lucide="calendar" class="w-4 h-4 text-indigo-400"></i>
+                                Sesi Perkuliahan Saat Ini
+                            </h3>
+                            <button onclick="navigateView('sesi')" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">Kelola Sesi →</button>
+                        </div>
+                        <div id="overview-sessions-list" class="mt-4 space-y-3">
+                            <div class="text-xs text-slate-500 text-center py-4">Memuat data sesi...</div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl">
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+                                Presensi Terakhir Masuk
+                            </h3>
+                            <button onclick="navigateView('rekap')" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">Lihat Semua →</button>
+                        </div>
+                        <div id="overview-recent-attend" class="mt-4 space-y-3">
+                            <div class="text-xs text-slate-500 text-center py-4">Memuat riwayat kehadiran...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. VIEW: KELOLA SESI KULIAH -->
+            <section id="view-sesi" class="view-section hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Form Buka Sesi Baru -->
+                    <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl">
+                        <h3 class="font-bold text-white text-sm flex items-center gap-2 pb-4 border-b border-slate-800">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-400"></i>
+                            Buka Sesi Presensi Baru
+                        </h3>
+                        <form onsubmit="handleCreateSession(event)" class="mt-4 space-y-4 text-xs">
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">Mata Kuliah</label>
+                                <select id="course_id" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-xs">
+                                    <option value="">Pilih Mata Kuliah...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">Topik / Judul Pertemuan</label>
+                                <input type="text" id="session_title" required placeholder="Contoh: Praktikum WireGuard Mesh" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-xs">
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="font-semibold text-slate-300">Token Presensi</label>
+                                    <button type="button" onclick="generateRandomToken()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold">Acak Token</button>
+                                </div>
+                                <input type="text" id="new_session_token" required placeholder="MISAL: SISTER24" class="uppercase tracking-widest font-mono font-bold w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-indigo-400 text-xs">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-300 mb-1">Durasi Sesi (Menit)</label>
+                                <input type="number" id="session_duration" value="120" min="5" max="1440" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-xs">
+                            </div>
+                            <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition mt-2">
+                                Terbitkan Sesi Presensi
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Daftar Sesi -->
+                    <div class="lg:col-span-2 rounded-2xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl">
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <div>
+                                <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                                    <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i>
+                                    Daftar Sesi Perkuliahan
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Dosen dapat membuka/menutup sesi secara real-time.</p>
+                            </div>
+                            <button onclick="loadSessions()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+                            </button>
+                        </div>
+                        <div id="sessions-table-container" class="mt-4 space-y-3">
+                            <div class="text-xs text-slate-500 text-center py-4">Memuat data sesi...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. VIEW: REKAP KEHADIRAN -->
+            <section id="view-rekap" class="view-section hidden space-y-6">
+                <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
+                        <div>
+                            <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                <i data-lucide="database" class="w-5 h-5 text-indigo-400"></i>
+                                Rekapitulasi Data Kehadiran Mahasiswa
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">Data relasional tersimpan persisten di PostgreSQL Node LXC 102 (Debian).</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="loadAttendanceRecords()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition font-medium">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+                            </button>
+                            <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs flex items-center gap-1.5 transition font-medium">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak / Export PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search Filter -->
+                    <div class="my-4">
+                        <input type="text" id="rekap-search" oninput="filterAttendanceTable()" placeholder="Cari berdasarkan NIM atau Nama Mahasiswa..." class="w-full sm:w-80 px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:border-indigo-500">
+                    </div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                                    <th class="py-3 px-4">Waktu</th>
+                                    <th class="py-3 px-4">NIM</th>
+                                    <th class="py-3 px-4">Nama Mahasiswa</th>
+                                    <th class="py-3 px-4">Mata Kuliah & Sesi</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4 font-mono">Client IP</th>
+                                    <th class="py-3 px-4 font-mono">Node Pemroses</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-table-body" class="divide-y divide-slate-800/60 font-sans">
+                                <tr>
+                                    <td colspan="7" class="py-6 text-center text-slate-500">Memuat data rekap...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. VIEW: OBSERVABILITAS CLUSTER -->
+            <section id="view-cluster" class="view-section hidden space-y-6">
+                <!-- 3 Node Architecture Cards -->
+                <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl">
+                    <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+                        <div>
+                            <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                <i data-lucide="network" class="w-5 h-5 text-indigo-400"></i>
+                                Topologi Microservices Multi-Kernel (Proxmox LXC & Tailscale)
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">Infrastruktur virtualisasi 3 kontainer independen yang berkomunikasi melalui WireGuard Overlay Mesh.</p>
+                        </div>
+                        <button onclick="refreshClusterTelemetry()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs flex items-center gap-1.5 transition font-semibold shadow-md">
+                            <i data-lucide="activity" class="w-3.5 h-3.5"></i> Test Latensi Cluster
+                        </button>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Node 1: Frontend -->
+                        <div class="rounded-2xl bg-slate-950 border border-slate-800 p-5 relative">
+                            <span class="absolute top-3 right-3 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">LXC 100</span>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                                    <i data-lucide="layout" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Frontend Server</h4>
+                                    <span class="text-xs text-slate-400">Alpine Linux 3.20</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">Userland Lib:</span><span class="font-mono text-slate-200">musl libc</span></div>
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">Web Engine:</span><span class="font-mono text-slate-200">Nginx 1.26</span></div>
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">IP Tailscale:</span><span class="font-mono text-emerald-400 font-bold">100.119.108.66</span></div>
+                                <div class="flex justify-between py-1"><span class="text-slate-400">Alokasi RAM:</span><span class="font-mono text-slate-300">512 MB (~35 MB Digunakan)</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Node 2: Backend -->
+                        <div class="rounded-2xl bg-slate-950 border border-slate-800 p-5 relative">
+                            <span class="absolute top-3 right-3 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">LXC 101</span>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400">
+                                    <i data-lucide="server" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Backend API Worker</h4>
+                                    <span class="text-xs text-slate-400">Ubuntu 24.04 LTS</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">Userland Lib:</span><span class="font-mono text-slate-200">GNU glibc</span></div>
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">Runtime:</span><span class="font-mono text-slate-200">FastAPI + Uvicorn</span></div>
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">IP Tailscale:</span><span class="font-mono text-emerald-400 font-bold">100.119.201.56</span></div>
+                                <div class="flex justify-between py-1"><span class="text-slate-400">Alokasi RAM:</span><span class="font-mono text-slate-300">512 MB (~78 MB Digunakan)</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Node 3: Database -->
+                        <div class="rounded-2xl bg-slate-950 border border-slate-800 p-5 relative">
+                            <span class="absolute top-3 right-3 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">LXC 102</span>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                                    <i data-lucide="database" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Database Server</h4>
+                                    <span class="text-xs text-slate-400">Debian 12 Bookworm</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">Userland Lib:</span><span class="font-mono text-slate-200">GNU glibc</span></div>
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">DBMS Engine:</span><span class="font-mono text-slate-200">PostgreSQL 15</span></div>
+                                <div class="flex justify-between py-1 border-b border-slate-900"><span class="text-slate-400">IP Tailscale:</span><span class="font-mono text-emerald-400 font-bold">100.115.151.38</span></div>
+                                <div class="flex justify-between py-1"><span class="text-slate-400">Whitelist Akses:</span><span class="font-mono text-emerald-400 font-semibold">Khusus IP Backend</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Audit Logs -->
+                <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                        <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-4 h-4 text-indigo-400"></i>
+                            Audit Log Transaksi Terdistribusi (PostgreSQL Node LXC 102)
+                        </h4>
+                        <button onclick="loadAuditLogs()" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 inline"></i> Refresh Log
+                        </button>
+                    </div>
+                    <div id="logs-container" class="mt-4 font-mono text-xs space-y-2 max-h-72 overflow-y-auto">
+                        <div class="text-slate-500">Memuat log...</div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        const API_BASE = '/api';
+        let allAttendanceData = [];
+
+        function navigateView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('aside nav button').forEach(el => el.classList.remove('sidebar-active'));
+
+            const targetSection = document.getElementById(`view-${viewName}`);
+            const targetNav = document.getElementById(`nav-${viewName}`);
+
+            if (targetSection) targetSection.classList.remove('hidden');
+            if (targetNav) targetNav.classList.add('sidebar-active');
+
+            const titles = {
+                'overview': 'Ringkasan Eksekutif',
+                'sesi': 'Kelola Sesi Perkuliahan',
+                'rekap': 'Rekapitulasi Kehadiran',
+                'cluster': 'Observabilitas Jaringan Cluster'
+            };
+            document.getElementById('page-title').innerText = titles[viewName] || 'Konsol Dosen';
+
+            if (viewName === 'overview') { loadOverviewData(); }
+            if (viewName === 'sesi') { loadCourses(); loadSessions(); }
+            if (viewName === 'rekap') { loadAttendanceRecords(); }
+            if (viewName === 'cluster') { refreshClusterTelemetry(); loadAuditLogs(); }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('sister_dosen_auth');
+            localStorage.removeItem('sister_dosen_user');
+            localStorage.removeItem('sister_dosen_token');
+            window.location.href = '/login.html';
+        }
+
+        // Generate Random Token
+        function generateRandomToken() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let res = '';
+            for (let i = 0; i < 6; i++) {
+                res += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('new_session_token').value = res;
+        }
+
+        // Load Courses
+        async function loadCourses() {
+            try {
+                const res = await fetch(`${API_BASE}/courses`);
+                const courses = await res.json();
+                const sel = document.getElementById('course_id');
+                sel.innerHTML = '<option value="">Pilih Mata Kuliah...</option>';
+                courses.forEach(c => {
+                    sel.innerHTML += `<option value="${c.id}">${c.code} - ${c.name} (${c.lecturer})</option>`;
+                });
+            } catch (e) {
+                console.error("Failed to load courses:", e);
+            }
+        }
+
+        // Load Sessions
+        async function loadSessions() {
+            try {
+                const res = await fetch(`${API_BASE}/sessions`);
+                const sessions = await res.json();
+                const container = document.getElementById('sessions-table-container');
+
+                if (!sessions || sessions.length === 0) {
+                    container.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">Belum ada sesi perkuliahan. Buat di form sebelah kiri.</div>';
+                    return;
+                }
+
+                container.innerHTML = sessions.map(s => `
+                    <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold">${s.course_code}</span>
+                                <h4 class="font-bold text-white text-sm">${s.title}</h4>
+                            </div>
+                            <div class="text-xs text-slate-400 mt-1 flex items-center gap-3">
+                                <span>Token: <strong class="font-mono text-indigo-400 font-bold">${s.token}</strong></span>
+                                <span>•</span>
+                                <span>Hadir: <strong class="text-emerald-400">${s.total_attendees} Mahasiswa</strong></span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleSession(${s.id})" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${s.is_active ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'}">
+                                ${s.is_active ? 'Tutup Sesi' : 'Buka Kembali'}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error("Failed to load sessions:", err);
+            }
+        }
+
+        async function handleCreateSession(e) {
+            e.preventDefault();
+            const course_id = parseInt(document.getElementById('course_id').value);
+            const title = document.getElementById('session_title').value;
+            const token = document.getElementById('new_session_token').value;
+            const duration_minutes = parseInt(document.getElementById('session_duration').value);
+
+            try {
+                const res = await fetch(`${API_BASE}/sessions`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ course_id, title, token, duration_minutes })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Gagal membuat sesi');
+
+                alert(`Sesi berhasil diterbitkan dengan Token: ${data.token}`);
+                document.getElementById('session_title').value = '';
+                document.getElementById('new_session_token').value = '';
+                loadSessions();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function toggleSession(id) {
+            try {
+                const res = await fetch(`${API_BASE}/sessions/${id}/toggle`, { method: 'PUT' });
+                if (res.ok) {
+                    loadSessions();
+                } else {
+                    const d = await res.json();
+                    alert(d.detail || "Gagal mengubah status sesi");
+                }
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        async function loadAttendanceRecords() {
+            const tbody = document.getElementById('attendance-table-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">Memuat data dari PostgreSQL via Tailscale...</td></tr>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/attendances`);
+                allAttendanceData = await res.json();
+                renderAttendanceTable(allAttendanceData);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-rose-400">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderAttendanceTable(rows) {
+            const tbody = document.getElementById('attendance-table-body');
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">Belum ada mahasiswa yang tercatat hadir.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map(r => `
+                <tr class="hover:bg-slate-900/50 transition">
+                    <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${new Date(r.time).toLocaleString('id-ID')}</td>
+                    <td class="py-3 px-4 font-mono text-indigo-400 font-semibold">${r.nim}</td>
+                    <td class="py-3 px-4 text-white font-medium">${r.name}</td>
+                    <td class="py-3 px-4 text-slate-300">${r.course || 'IF3105'} - ${r.session_title}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${r.status === 'HADIR' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400'}">
+                            ${r.status}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${r.client_ip || '-'}</td>
+                    <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${r.node}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterAttendanceTable() {
+            const q = document.getElementById('rekap-search').value.toLowerCase();
+            const filtered = allAttendanceData.filter(r => 
+                r.nim.toLowerCase().includes(q) || 
+                r.name.toLowerCase().includes(q)
+            );
+            renderAttendanceTable(filtered);
+        }
+
+        async function loadOverviewData() {
+            try {
+                const [sessRes, attRes, healthRes] = await Promise.all([
+                    fetch(`${API_BASE}/sessions`),
+                    fetch(`${API_BASE}/attendances`),
+                    fetch(`${API_BASE}/health`)
+                ]);
+                const sessions = await sessRes.json();
+                const attendances = await attRes.json();
+                const health = await healthRes.json();
+
+                // Metrics
+                document.getElementById('stat-total-attend').innerText = attendances.length;
+                const activeCount = sessions.filter(s => s.is_active).length;
+                document.getElementById('stat-active-sessions').innerText = activeCount;
+
+                if (health.database_node && health.database_node.health) {
+                    document.getElementById('stat-db-latency').innerText = `${health.database_node.health.latency_ms} ms`;
+                }
+
+                // Recent sessions
+                const sessContainer = document.getElementById('overview-sessions-list');
+                sessContainer.innerHTML = sessions.slice(0, 3).map(s => `
+                    <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
+                        <div>
+                            <div class="font-semibold text-white">${s.course_code}: ${s.title}</div>
+                            <div class="text-[11px] text-slate-400">Token: <strong class="font-mono text-indigo-400">${s.token}</strong></div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${s.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                            ${s.is_active ? 'Buka' : 'Tutup'}
+                        </span>
+                    </div>
+                `).join('') || '<div class="text-xs text-slate-500">Belum ada sesi.</div>';
+
+                // Recent attendances
+                const attContainer = document.getElementById('overview-recent-attend');
+                attContainer.innerHTML = attendances.slice(0, 4).map(a => `
+                    <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
+                        <div>
+                            <div class="font-semibold text-white">${a.name} <span class="font-mono text-indigo-400 text-[11px]">(${a.nim})</span></div>
+                            <div class="text-[11px] text-slate-500">${new Date(a.time).toLocaleTimeString('id-ID')} • ${a.session_title}</div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${a.status}</span>
+                    </div>
+                `).join('') || '<div class="text-xs text-slate-500">Belum ada presensi.</div>';
+
+            } catch (e) {
+                console.error("Overview error:", e);
+            }
+        }
+
+        async function refreshClusterTelemetry() {
+            try {
+                const res = await fetch(`${API_BASE}/cluster`);
+                const data = await res.json();
+                console.log("Cluster data:", data);
+            } catch (err) {
+                console.error("Cluster telemetry error:", err);
+            }
+        }
+
+        async function loadAuditLogs() {
+            const container = document.getElementById('logs-container');
+            container.innerHTML = '<div class="text-slate-500">Mengambil log transaksi...</div>';
+            try {
+                const res = await fetch(`${API_BASE}/logs`);
+                const logs = await res.json();
+                if (!logs || logs.length === 0) {
+                    container.innerHTML = '<div class="text-slate-500">Belum ada log transaksi.</div>';
+                    return;
+                }
+                container.innerHTML = logs.map(l => `
+                    <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-900 flex items-start gap-2 text-xs">
+                        <span class="text-slate-500 shrink-0">[${new Date(l.timestamp).toLocaleTimeString()}]</span>
+                        <span class="text-indigo-400 shrink-0 font-bold">[${l.node}]</span>
+                        <span class="text-emerald-400 shrink-0 font-semibold">${l.action}:</span>
+                        <span class="text-slate-300 break-all">${l.details}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = `<div class="text-rose-400">Gagal memuat log: ${e.message}</div>`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            const savedUser = localStorage.getItem('sister_dosen_user');
+            if (savedUser) document.getElementById('dosen-username').innerText = savedUser;
+            navigateView('overview');
+        });
+    </script>
+</body>
+</html>

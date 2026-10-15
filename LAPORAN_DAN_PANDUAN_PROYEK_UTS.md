@@ -5,7 +5,7 @@
 * **Topik Tugas:** Proyek Ujian Tengah Semester (UTS) — Multi Kernel & Microservices
 * **Platform Hypervisor:** Proxmox Virtual Environment (VE) 8.x
 * **Jaringan Keamanan:** Tailscale Mesh VPN (WireGuard Overlay)
-* **Penyusun:** Mufid Risqi (Teknik Informatika)
+* **Penyusun:** Kelompok 5 (Teknik Informatika)
 
 ---
 

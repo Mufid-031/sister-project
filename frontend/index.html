@@ -1,834 +1,245 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full bg-slate-900 text-slate-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Presensi Terdistribusi - Kelompok 5</title>
+    <title>Portal Presensi Mahasiswa - Kelompok 5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         code, .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .pulse-online {
-            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-            animation: pulse-green 2s infinite;
-        }
-        @keyframes pulse-green {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+<body class="min-h-full flex flex-col bg-slate-950 text-slate-200 antialiased selection:bg-indigo-600 selection:text-white">
 
-    <!-- Top Navigation & Live Observability Bar -->
-    <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <!-- Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-bold">
-                    <i data-lucide="network" class="w-5 h-5"></i>
+                <div class="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/20 font-bold">
+                    <i data-lucide="check-square" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                        Presensi Terdistribusi
-                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">Kelompok 5</span>
-                    </h1>
-                    <p class="text-xs text-slate-400">UTS Sister E • Proxmox VE Multi-Kernel • Tailscale WireGuard Mesh</p>
-                </div>
-            </div>
-
-            <!-- Cluster Observability Badges & Role State -->
-            <div class="flex flex-wrap items-center gap-2 text-xs">
-                <!-- Frontend Node -->
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Frontend Web Server (Alpine)">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-online"></span>
-                    <span class="text-slate-400">LXC 100 [Alpine]:</span>
-                    <span class="font-mono text-emerald-400 font-semibold">100.119.108.66</span>
-                </div>
-                <!-- Backend Node -->
-                <div id="badge-backend" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Backend API Worker (Ubuntu)">
-                    <span id="dot-backend" class="w-2 h-2 rounded-full bg-emerald-400 pulse-online"></span>
-                    <span class="text-slate-400">LXC 101 [Ubuntu]:</span>
-                    <span class="font-mono text-emerald-400 font-semibold">100.119.201.56</span>
-                    <span id="latency-backend" class="text-[10px] text-slate-400 font-mono">-- ms</span>
-                </div>
-                <!-- DB Node -->
-                <div id="badge-db" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="PostgreSQL Database (Debian)">
-                    <span id="dot-db" class="w-2 h-2 rounded-full bg-emerald-400 pulse-online"></span>
-                    <span class="text-slate-400">LXC 102 [Debian]:</span>
-                    <span class="font-mono text-emerald-400 font-semibold">100.115.151.38</span>
-                    <span id="latency-db" class="text-[10px] text-slate-400 font-mono">-- ms</span>
-                </div>
-
-                <!-- Role Switcher Button -->
-                <div id="role-container" class="ml-1">
-                    <button onclick="openLoginModal()" id="btn-login-trigger" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-xs flex items-center gap-1.5 transition shadow-lg shadow-indigo-600/20">
-                        <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-                        <span>Login Dosen</span>
-                    </button>
-                    <div id="role-dosen-badge" class="hidden flex items-center gap-2">
-                        <span class="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 font-semibold text-xs flex items-center gap-1.5">
-                            <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i> Mode Dosen (Kelompok 5)
-                        </span>
-                        <button onclick="logoutRole()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 text-xs transition" title="Logout kembali ke Mode Murid">
-                            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-                        </button>
+                    <div class="font-bold text-white text-base leading-tight flex items-center gap-2">
+                        Portal Presensi Akademik
+                        <span class="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold">Kelompok 5</span>
                     </div>
+                    <div class="text-xs text-slate-400">Teknik Informatika • Sistem Terdistribusi E (Proxmox LXC & Tailscale)</div>
                 </div>
             </div>
-        </div>
 
-        <!-- Navigation Tabs -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 border-t border-slate-800/60 pt-1">
-            <button onclick="switchTab('presensi')" id="tab-btn-presensi" class="tab-btn px-4 py-2.5 text-sm font-semibold rounded-t-lg transition flex items-center gap-2 text-indigo-400 border-b-2 border-indigo-500 bg-slate-800/50">
-                <i data-lucide="user-check" class="w-4 h-4"></i> Form Presensi
-            </button>
-            <button onclick="switchTab('dosen')" id="tab-btn-dosen" class="tab-btn px-4 py-2.5 text-sm font-semibold rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
-                <i data-lucide="calendar" class="w-4 h-4"></i> Kelola Sesi Kuliah
-                <span id="lock-icon-dosen" class="text-[10px] text-amber-400 font-normal ml-1">🔒</span>
-            </button>
-            <button onclick="switchTab('rekap')" id="tab-btn-rekap" class="tab-btn px-4 py-2.5 text-sm font-semibold rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
-                <i data-lucide="clipboard-list" class="w-4 h-4"></i> Rekap Kehadiran
-                <span id="lock-icon-rekap" class="text-[10px] text-amber-400 font-normal ml-1">🔒</span>
-            </button>
-            <button onclick="switchTab('topologi')" id="tab-btn-topologi" class="tab-btn px-4 py-2.5 text-sm font-semibold rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
-                <i data-lucide="cpu" class="w-4 h-4"></i> Topologi & Demo Sister
-                <span id="lock-icon-topologi" class="text-[10px] text-amber-400 font-normal ml-1">🔒</span>
-            </button>
+            <!-- Navbar Actions -->
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-slate-400">Sistem:</span>
+                    <span class="text-emerald-400 font-medium">Terdistribusi (3 Node Online)</span>
+                </div>
+                <a href="/login.html" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white transition flex items-center gap-2 shadow-sm">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-indigo-400"></i>
+                    <span>Akses Dosen / Pengampu →</span>
+                </a>
+            </div>
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-
-        <!-- TAB 1: FORM PRESENSI MAHASISWA -->
-        <div id="tab-presensi" class="tab-content block space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Left: Form Input -->
-                <div class="lg:col-span-2 bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl backdrop-blur">
-                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                        <div>
-                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                                <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-400"></i>
-                                Presensi Kehadiran Mahasiswa
-                            </h2>
-                            <p class="text-xs text-slate-400 mt-1">Permintaan diproses oleh Backend LXC 101 dan dicatat di Database LXC 102 via Tailscale WireGuard Mesh.</p>
-                        </div>
-                        <span class="px-2.5 py-1 rounded-md text-xs font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">POST /api/attend</span>
-                    </div>
-
-                    <!-- Alert Box -->
-                    <div id="attend-alert" class="hidden mt-4 p-4 rounded-xl text-sm border flex items-start gap-3">
-                        <i id="attend-alert-icon" data-lucide="alert-circle" class="w-5 h-5 shrink-0 mt-0.5"></i>
-                        <div class="flex-1" id="attend-alert-text"></div>
-                    </div>
-
-                    <form id="attendance-form" onsubmit="handleAttendanceSubmit(event)" class="mt-6 space-y-4">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Nomor Induk Mahasiswa (NIM)</label>
-                            <input type="text" id="nim" required placeholder="Contoh: 22001" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white font-mono text-sm transition">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Nama Lengkap Mahasiswa</label>
-                            <input type="text" id="student_name" required placeholder="Contoh: Fajar Pratama" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white text-sm transition">
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Token Sesi Absensi</label>
-                                <input type="text" id="token" required placeholder="Contoh: SISTER24" class="uppercase tracking-widest font-mono font-bold w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-indigo-400 text-sm transition">
-                                <p class="text-[11px] text-slate-500 mt-1">Gunakan token sesi perkuliahan aktif.</p>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Status Kehadiran</label>
-                                <select id="status" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white text-sm transition">
-                                    <option value="HADIR">Hadir (Present)</option>
-                                    <option value="IZIN">Izin (Permitted)</option>
-                                    <option value="SAKIT">Sakit (Sick)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="pt-4 flex items-center justify-between">
-                            <span class="text-xs text-slate-500">
-                                <i data-lucide="shield-check" class="w-3.5 h-3.5 inline text-emerald-400"></i> Terenkripsi WireGuard Mesh
-                            </span>
-                            <button type="submit" id="btn-submit-attend" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 disabled:opacity-50">
-                                <span>Kirim Presensi</span>
-                                <i data-lucide="send" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Right: Active Session Quick Card & Test Mahasiswa -->
-                <div class="space-y-6">
-                    <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl backdrop-blur">
-                        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-                            <h3 class="font-bold text-white text-sm flex items-center gap-2">
-                                <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
-                                Sesi Perkuliahan Aktif
-                            </h3>
-                            <button onclick="loadSessions()" class="text-xs text-indigo-400 hover:text-indigo-300">
-                                <i data-lucide="refresh-cw" class="w-3 h-3 inline"></i>
-                            </button>
-                        </div>
-                        <div id="quick-sessions" class="mt-4 space-y-3">
-                            <div class="text-xs text-slate-400 py-3 text-center">Memuat sesi aktif...</div>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl backdrop-blur">
-                        <h3 class="font-bold text-white text-sm flex items-center gap-2 pb-3 border-b border-slate-800">
-                            <i data-lucide="users" class="w-4 h-4 text-blue-400"></i>
-                            Akun Uji Coba Mahasiswa (Kelompok 5)
-                        </h3>
-                        <div class="mt-3 space-y-2 text-xs">
-                            <div onclick="fillStudent('22001', 'Fajar Pratama')" class="p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
-                                <div>
-                                    <div class="font-mono text-indigo-400 font-semibold">22001</div>
-                                    <div class="text-slate-300">Fajar Pratama</div>
-                                </div>
-                                <span class="text-[10px] text-slate-500">Klik isi</span>
-                            </div>
-                            <div onclick="fillStudent('22002', 'Ahmad Farhan')" class="p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
-                                <div>
-                                    <div class="font-mono text-indigo-400 font-semibold">22002</div>
-                                    <div class="text-slate-300">Ahmad Farhan</div>
-                                </div>
-                                <span class="text-[10px] text-slate-500">Klik isi</span>
-                            </div>
-                            <div onclick="fillStudent('22003', 'Siti Rahma')" class="p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
-                                <div>
-                                    <div class="font-mono text-indigo-400 font-semibold">22003</div>
-                                    <div class="text-slate-300">Siti Rahma</div>
-                                </div>
-                                <span class="text-[10px] text-slate-500">Klik isi</span>
-                            </div>
-                            <div onclick="fillStudent('22004', 'Budi Santoso')" class="p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
-                                <div>
-                                    <div class="font-mono text-indigo-400 font-semibold">22004</div>
-                                    <div class="text-slate-300">Budi Santoso</div>
-                                </div>
-                                <span class="text-[10px] text-slate-500">Klik isi</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+        
+        <!-- Welcome Banner -->
+        <div class="rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 p-6 md:p-8 relative overflow-hidden shadow-xl">
+            <div class="max-w-2xl">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-3">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Formulir Presensi Perkuliahan
+                </span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Presensi Kehadiran Mahasiswa</h2>
+                <p class="text-sm text-slate-400 mt-2 leading-relaxed">
+                    Silakan masukkan NIM, nama lengkap, dan kode token absensi yang diberikan oleh dosen pengampu. Permintaan Anda akan diverifikasi secara otomatis melalui jaringan microservices terdistribusi.
+                </p>
             </div>
         </div>
 
-        <!-- TAB 2: DOSEN / KELOLA SESI KULIAH -->
-        <div id="tab-dosen" class="tab-content hidden space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Create Session Form -->
-                <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                            <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-400"></i>
-                            Buka Sesi Presensi Baru
-                        </h2>
-                        <span class="text-[11px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium border border-amber-500/20">Akses Dosen</span>
+        <!-- Form and Active Session Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left 2 Cols: Form Presensi -->
+            <div class="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 shadow-xl">
+                <div class="border-b border-slate-800 pb-4 mb-6 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                            <i data-lucide="edit-3" class="w-5 h-5 text-indigo-400"></i>
+                            Input Data Kehadiran
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Pastikan NIM dan Token sesuai dengan sesi aktif.</p>
                     </div>
-                    <form onsubmit="handleCreateSession(event)" class="mt-4 space-y-4">
+                    <span class="text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">API: /api/attend</span>
+                </div>
+
+                <!-- Alert Box -->
+                <div id="attend-alert" class="hidden mb-6 p-4 rounded-xl text-sm border flex items-start gap-3">
+                    <i id="attend-alert-icon" data-lucide="alert-circle" class="w-5 h-5 shrink-0 mt-0.5"></i>
+                    <div class="flex-1" id="attend-alert-text"></div>
+                </div>
+
+                <form id="attendance-form" onsubmit="handleAttendanceSubmit(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Nomor Induk Mahasiswa (NIM)</label>
+                        <input type="text" id="nim" required placeholder="Contoh: 22001" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white font-mono text-sm transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Nama Lengkap Mahasiswa</label>
+                        <input type="text" id="student_name" required placeholder="Contoh: Fajar Pratama" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white text-sm transition">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Mata Kuliah</label>
-                            <select id="course_id" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
-                                <option value="">Pilih Mata Kuliah...</option>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Token Sesi Perkuliahan</label>
+                            <input type="text" id="token" required placeholder="MISAL: SISTER24" class="uppercase tracking-widest font-mono font-bold w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-indigo-400 text-sm transition">
+                            <p class="text-[11px] text-slate-500 mt-1">Dapatkan token dari dosen atau kotak di sebelah kanan.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Status Kehadiran</label>
+                            <select id="status" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white text-sm transition">
+                                <option value="HADIR">Hadir (Present)</option>
+                                <option value="IZIN">Izin (Permitted)</option>
+                                <option value="SAKIT">Sakit (Sick)</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Judul / Topik Pertemuan</label>
-                            <input type="text" id="session_title" required placeholder="Contoh: Praktikum Microservices & WireGuard" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Token Presensi</label>
-                                <button type="button" onclick="generateRandomToken()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium">Acak Token</button>
-                            </div>
-                            <input type="text" id="new_session_token" required placeholder="MISAL: SISTER24" class="uppercase tracking-widest font-mono font-bold w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-indigo-400 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Durasi Sesi (Menit)</label>
-                            <input type="number" id="session_duration" value="120" min="5" max="1440" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
-                        </div>
-                        <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg transition mt-2">
-                            Buka Sesi Presensi
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Session List -->
-                <div class="lg:col-span-2 bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                        <div>
-                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                                <i data-lucide="layers" class="w-5 h-5 text-indigo-400"></i>
-                                Daftar Seluruh Sesi Perkuliahan
-                            </h2>
-                            <p class="text-xs text-slate-400 mt-1">Dosen dapat membuka/menutup sesi dan melihat jumlah mahasiswa hadir.</p>
-                        </div>
-                        <button onclick="loadSessions()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
-                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
-                        </button>
                     </div>
 
-                    <div id="sessions-table-container" class="mt-4 space-y-3">
-                        <!-- Loaded dynamically -->
+                    <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
+                        <span class="text-xs text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                            Tervalidasi Mikroservis PostgreSQL
+                        </span>
+                        <button type="submit" id="btn-submit-attend" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm text-white shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 disabled:opacity-50">
+                            <span>Kirim Presensi Sekarang</span>
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Right 1 Col: Sesi Aktif & Demo Presets -->
+            <div class="space-y-6">
+                <!-- Sesi Aktif -->
+                <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i data-lucide="radio" class="w-4 h-4 text-emerald-400"></i>
+                            Sesi Perkuliahan Terbuka
+                        </h4>
+                        <button onclick="loadSessions()" class="text-xs text-indigo-400 hover:text-indigo-300">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 inline"></i>
+                        </button>
+                    </div>
+                    <div id="quick-sessions" class="mt-4 space-y-3">
+                        <div class="text-xs text-slate-500 text-center py-4">Memuat sesi aktif...</div>
+                    </div>
+                </div>
+
+                <!-- Presets Uji Coba -->
+                <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl">
+                    <h4 class="font-bold text-white text-sm flex items-center gap-2 pb-3 border-b border-slate-800">
+                        <i data-lucide="users" class="w-4 h-4 text-indigo-400"></i>
+                        Akun Mahasiswa (Uji Coba Cepat)
+                    </h4>
+                    <div class="mt-4 space-y-2 text-xs">
+                        <div onclick="fillStudent('22001', 'Fajar Pratama')" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
+                            <div>
+                                <div class="font-mono text-indigo-400 font-semibold">22001</div>
+                                <div class="text-slate-300">Fajar Pratama</div>
+                            </div>
+                            <span class="text-[10px] text-slate-500 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Pilih</span>
+                        </div>
+                        <div onclick="fillStudent('22002', 'Ahmad Farhan')" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
+                            <div>
+                                <div class="font-mono text-indigo-400 font-semibold">22002</div>
+                                <div class="text-slate-300">Ahmad Farhan</div>
+                            </div>
+                            <span class="text-[10px] text-slate-500 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Pilih</span>
+                        </div>
+                        <div onclick="fillStudent('22003', 'Siti Rahma')" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
+                            <div>
+                                <div class="font-mono text-indigo-400 font-semibold">22003</div>
+                                <div class="text-slate-300">Siti Rahma</div>
+                            </div>
+                            <span class="text-[10px] text-slate-500 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Pilih</span>
+                        </div>
+                        <div onclick="fillStudent('22004', 'Budi Santoso')" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between">
+                            <div>
+                                <div class="font-mono text-indigo-400 font-semibold">22004</div>
+                                <div class="text-slate-300">Budi Santoso</div>
+                            </div>
+                            <span class="text-[10px] text-slate-500 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Pilih</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- TAB 3: REKAP KEHADIRAN -->
-        <div id="tab-rekap" class="tab-content hidden space-y-6">
-            <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
-                    <div>
-                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                            <i data-lucide="database" class="w-5 h-5 text-indigo-400"></i>
-                            Rekap Data Kehadiran Mahasiswa
-                        </h2>
-                        <p class="text-xs text-slate-400 mt-1">Data tersimpan secara relasional dan konsisten di node PostgreSQL LXC 102 via Tailscale.</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="loadAttendanceRecords()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
-                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Data
-                        </button>
-                        <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs flex items-center gap-1.5 transition">
-                            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak / Export PDF
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Table -->
-                <div class="mt-6 overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
-                                <th class="py-3 px-4">Waktu Presensi</th>
-                                <th class="py-3 px-4">NIM</th>
-                                <th class="py-3 px-4">Nama Mahasiswa</th>
-                                <th class="py-3 px-4">Mata Kuliah & Sesi</th>
-                                <th class="py-3 px-4">Status</th>
-                                <th class="py-3 px-4 font-mono">Client IP</th>
-                                <th class="py-3 px-4 font-mono">Node Pemroses</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendance-table-body" class="divide-y divide-slate-800/60 font-sans">
-                            <tr>
-                                <td colspan="7" class="py-6 text-center text-slate-500">Memuat data rekap...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: TOPOLOGI SISTEM & DEMO SISTER -->
-        <div id="tab-topologi" class="tab-content hidden space-y-6">
-            <!-- Node Architecture Visual -->
-            <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                <div class="flex items-center justify-between pb-6 border-b border-slate-800">
-                    <div>
-                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                            <i data-lucide="network" class="w-5 h-5 text-indigo-400"></i>
-                            Peta Arsitektur Sistem Terdistribusi (Kelompok 5)
-                        </h2>
-                        <p class="text-xs text-slate-400 mt-1">Infrastruktur virtualisasi Proxmox VE dengan isolasi 3 kontainer independen yang terhubung melalui Tailscale WireGuard Mesh.</p>
-                    </div>
-                    <button onclick="refreshClusterTelemetry()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs flex items-center gap-1.5 transition font-semibold shadow-lg shadow-indigo-600/20">
-                        <i data-lucide="activity" class="w-3.5 h-3.5"></i> Test Latency Cluster
-                    </button>
-                </div>
-
-                <!-- 3 Nodes Visual Grid -->
-                <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Node 1: Frontend -->
-                    <div class="rounded-2xl bg-slate-950 border border-slate-800 p-5 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 px-3 py-1 bg-emerald-500/10 border-b border-l border-emerald-500/20 text-emerald-400 text-[10px] font-mono font-semibold rounded-bl-xl">
-                            LXC 100
-                        </div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                                <i data-lucide="layout" class="w-5 h-5"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-white text-sm">Frontend Server</h3>
-                                <span class="text-xs text-slate-400">Alpine Linux 3.20</span>
-                            </div>
-                        </div>
-                        <div class="space-y-2 text-xs">
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">Userland Lib:</span>
-                                <span class="font-mono text-slate-200">musl libc</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">Web Engine:</span>
-                                <span class="font-mono text-slate-200">Nginx 1.26</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">IP Tailscale:</span>
-                                <span class="font-mono text-emerald-400 font-semibold">100.119.108.66</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">IP Lokal LAN:</span>
-                                <span class="font-mono text-slate-300">10.10.10.100</span>
-                            </div>
-                            <div class="flex justify-between py-1">
-                                <span class="text-slate-400">RAM Allocation:</span>
-                                <span class="font-mono text-slate-300">512 MB (~35 MB Used)</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Node 2: Backend -->
-                    <div class="rounded-2xl bg-slate-950 border border-slate-800 p-5 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 px-3 py-1 bg-emerald-500/10 border-b border-l border-emerald-500/20 text-emerald-400 text-[10px] font-mono font-semibold rounded-bl-xl">
-                            LXC 101
-                        </div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400">
-                                <i data-lucide="server" class="w-5 h-5"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-white text-sm">Backend API Worker</h3>
-                                <span class="text-xs text-slate-400">Ubuntu 24.04 LTS</span>
-                            </div>
-                        </div>
-                        <div class="space-y-2 text-xs">
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">Userland Lib:</span>
-                                <span class="font-mono text-slate-200">GNU glibc</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">Runtime:</span>
-                                <span class="font-mono text-slate-200">FastAPI + Uvicorn</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">IP Tailscale:</span>
-                                <span class="font-mono text-emerald-400 font-semibold">100.119.201.56</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">IP Lokal LAN:</span>
-                                <span class="font-mono text-slate-300">10.10.10.101</span>
-                            </div>
-                            <div class="flex justify-between py-1">
-                                <span class="text-slate-400">RAM Allocation:</span>
-                                <span class="font-mono text-slate-300">512 MB (~78 MB Used)</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Node 3: Database -->
-                    <div class="rounded-2xl bg-slate-950 border border-slate-800 p-5 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 px-3 py-1 bg-emerald-500/10 border-b border-l border-emerald-500/20 text-emerald-400 text-[10px] font-mono font-semibold rounded-bl-xl">
-                            LXC 102
-                        </div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                                <i data-lucide="database" class="w-5 h-5"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-white text-sm">Database Server</h3>
-                                <span class="text-xs text-slate-400">Debian 12 Bookworm</span>
-                            </div>
-                        </div>
-                        <div class="space-y-2 text-xs">
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">Userland Lib:</span>
-                                <span class="font-mono text-slate-200">GNU glibc</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">DBMS:</span>
-                                <span class="font-mono text-slate-200">PostgreSQL 15</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">IP Tailscale:</span>
-                                <span class="font-mono text-emerald-400 font-semibold">100.115.151.38</span>
-                            </div>
-                            <div class="flex justify-between py-1 border-b border-slate-900">
-                                <span class="text-slate-400">IP Lokal LAN:</span>
-                                <span class="font-mono text-slate-300">10.10.10.102</span>
-                            </div>
-                            <div class="flex justify-between py-1">
-                                <span class="text-slate-400">Security Rule:</span>
-                                <span class="font-mono text-emerald-400 font-semibold">Whitelist Tailscale Only</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Academic Explanation Cards for UTS Defense -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                    <h3 class="font-bold text-white text-sm flex items-center gap-2 mb-3">
-                        <i data-lucide="help-circle" class="w-4 h-4 text-indigo-400"></i>
-                        Pertanyaan Dosen: Konsep "Multi-Kernel" di Proxmox
-                    </h3>
-                    <div class="text-xs text-slate-300 space-y-2.5 leading-relaxed">
-                        <p>
-                            <strong class="text-white">Pertanyaan:</strong> "Apakah ketiga kontainer ini menggunakan kernel yang berbeda?"
-                        </p>
-                        <p class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-400">
-                            <strong class="text-indigo-400">Jawaban Teknis:</strong> Di tingkat OS virtualization LXC, ketiga kontainer berbagi (*shared*) satu Kernel Linux milik Host Proxmox (`pve-lab`). Namun, di level user-space runtime, sistem kami menerapkan <strong class="text-white">Multi-Userland Execution</strong>:
-                            Alpine menggunakan <span class="text-indigo-300 font-mono">musl libc</span> yang ultra-ringan, sementara Ubuntu dan Debian menggunakan <span class="text-indigo-300 font-mono">GNU glibc</span>. Isolasi dilakukan via Linux Namespaces (PID, Mount, UTS, IPC, Net) dan cgroups v2.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                    <h3 class="font-bold text-white text-sm flex items-center gap-2 mb-3">
-                        <i data-lucide="shield" class="w-4 h-4 text-emerald-400"></i>
-                        Pertanyaan Dosen: Peran Tailscale dalam Sistem Terdistribusi
-                    </h3>
-                    <div class="text-xs text-slate-300 space-y-2.5 leading-relaxed">
-                        <p>
-                            <strong class="text-white">Pertanyaan:</strong> "Mengapa menggunakan Tailscale dan bukan IP lokal biasa?"
-                        </p>
-                        <p class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-400">
-                            <strong class="text-emerald-400">Jawaban Teknis:</strong> Tailscale membangun <strong class="text-white">Zero-Trust WireGuard Overlay Mesh Network</strong>. Ini memungkinkan komunikasi antar-node terisolasi dari LAN luar, terenkripsi point-to-point tanpa perlu port forwarding publik, serta port Database 5432 di-bind khusus ke interface Tailscale sehingga aman dari serangan sniffing atau unauthorized access.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- System Logs Box -->
-            <div class="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-xl">
-                <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                    <h3 class="font-bold text-white text-sm flex items-center gap-2">
-                        <i data-lucide="terminal" class="w-4 h-4 text-indigo-400"></i>
-                        Audit Log Transaksi Terdistribusi (PostgreSQL Node LXC 102)
-                    </h3>
-                    <button onclick="loadAuditLogs()" class="text-xs text-indigo-400 hover:text-indigo-300">
-                        <i data-lucide="refresh-cw" class="w-3 h-3 inline"></i> Refresh Log
-                    </button>
-                </div>
-                <div id="logs-container" class="mt-4 font-mono text-xs space-y-2 max-h-60 overflow-y-auto">
-                    <!-- Logs injected -->
-                </div>
-            </div>
-        </div>
-
     </main>
 
-    <!-- Modal Login Dosen / Guru -->
-    <div id="login-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="bg-slate-900 rounded-2xl border border-slate-800 max-w-md w-full p-6 shadow-2xl relative">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                <div class="flex items-center gap-2">
-                    <div class="h-8 w-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                        <i data-lucide="graduation-cap" class="w-4 h-4"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-white text-sm">Autentikasi Pengajar / Dosen</h3>
-                        <p class="text-[11px] text-slate-400">Masuk untuk mengelola sesi dan rekap absensi</p>
-                    </div>
-                </div>
-                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-white">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <!-- Error message box -->
-            <div id="login-error-box" class="hidden mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs"></div>
-
-            <form onsubmit="handleLoginSubmit(event)" class="mt-4 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Username</label>
-                    <input type="text" id="login_username" required placeholder="dosen" value="dosen" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Password</label>
-                    <input type="password" id="login_password" required placeholder="kelompok5" value="kelompok5" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-indigo-500 text-white text-sm">
-                </div>
-                
-                <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-                    <span>💡 Kredensial Demo: <strong>dosen / kelompok5</strong></span>
-                    <button type="button" onclick="document.getElementById('login_username').value='dosen'; document.getElementById('login_password').value='kelompok5';" class="text-indigo-400 hover:underline">Isi</button>
-                </div>
-
-                <div class="pt-2 flex items-center justify-end gap-2">
-                    <button type="button" onclick="closeLoginModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Batal</button>
-                    <button type="submit" id="btn-login-submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20">Masuk sebagai Dosen</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Footer -->
-    <footer class="border-t border-slate-800/80 bg-slate-950 py-4 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-            <div>Sistem Terdistribusi E • Ujian Tengah Semester (UTS) • Kelompok 5 • Proxmox VE & Tailscale WireGuard</div>
-            <div class="flex items-center gap-3">
-                <a href="/docs" target="_blank" class="hover:text-indigo-400 text-slate-400 font-mono">Swagger API Docs ↗</a>
+    <footer class="border-t border-slate-800 bg-slate-950 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+            <div>Sistem Terdistribusi E • Ujian Tengah Semester (UTS) • Kelompok 5</div>
+            <div class="flex items-center gap-4">
+                <a href="/login.html" class="hover:text-indigo-400 text-slate-400">Login Dosen</a>
                 <span>•</span>
-                <span class="text-indigo-400 font-medium">Kelompok 5 (Teknik Informatika)</span>
+                <a href="/docs" target="_blank" class="hover:text-indigo-400 text-slate-400 font-mono">OpenAPI Docs ↗</a>
+                <span>•</span>
+                <span class="text-slate-400 font-medium">Proxmox VE & Tailscale Mesh</span>
             </div>
         </div>
     </footer>
 
-    <!-- Application JavaScript Logic -->
     <script>
         const API_BASE = '/api';
-        let currentUserRole = 'student'; // 'student' or 'dosen'
 
-        function checkAuth() {
-            const savedRole = sessionStorage.getItem('sister_user_role');
-            if (savedRole === 'dosen') {
-                currentUserRole = 'dosen';
-                document.getElementById('btn-login-trigger').classList.add('hidden');
-                document.getElementById('role-dosen-badge').classList.remove('hidden');
-                document.getElementById('lock-icon-dosen').classList.add('hidden');
-                document.getElementById('lock-icon-rekap').classList.add('hidden');
-                document.getElementById('lock-icon-topologi').classList.add('hidden');
-            } else {
-                currentUserRole = 'student';
-                document.getElementById('btn-login-trigger').classList.remove('hidden');
-                document.getElementById('role-dosen-badge').classList.add('hidden');
-                document.getElementById('lock-icon-dosen').classList.remove('hidden');
-                document.getElementById('lock-icon-rekap').classList.remove('hidden');
-                document.getElementById('lock-icon-topologi').classList.remove('hidden');
-            }
-        }
-
-        function openLoginModal() {
-            document.getElementById('login-modal').classList.remove('hidden');
-            document.getElementById('login-error-box').classList.add('hidden');
-        }
-
-        function closeLoginModal() {
-            document.getElementById('login-modal').classList.add('hidden');
-        }
-
-        async function handleLoginSubmit(e) {
-            e.preventDefault();
-            const u = document.getElementById('login_username').value;
-            const p = document.getElementById('login_password').value;
-            const errBox = document.getElementById('login_error-box');
-            const btn = document.getElementById('btn-login-submit');
-
-            btn.disabled = true;
-            btn.innerText = 'Memverifikasi...';
-
-            try {
-                const res = await fetch(`${API_BASE}/auth/login`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ username: u, password: p })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || 'Login gagal');
-
-                sessionStorage.setItem('sister_user_role', 'dosen');
-                sessionStorage.setItem('sister_user_token', data.token);
-                checkAuth();
-                closeLoginModal();
-                alert("Berhasil login sebagai Dosen Pengampu (Kelompok 5)!");
-            } catch (err) {
-                errBox.innerText = err.message;
-                errBox.classList.remove('hidden');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = 'Masuk sebagai Dosen';
-            }
-        }
-
-        function logoutRole() {
-            sessionStorage.removeItem('sister_user_role');
-            sessionStorage.removeItem('sister_user_token');
-            checkAuth();
-            switchTab('presensi');
-            alert("Anda telah kembali ke Mode Mahasiswa (Murid).");
-        }
-
-        function switchTab(tabId) {
-            // Check permission: tabs other than 'presensi' require 'dosen' role
-            if (tabId !== 'presensi' && currentUserRole !== 'dosen') {
-                openLoginModal();
-                return;
-            }
-
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('text-indigo-400', 'border-b-2', 'border-indigo-500', 'bg-slate-800/50');
-                btn.classList.add('text-slate-400');
-            });
-
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-            activeBtn.classList.remove('text-slate-400');
-            activeBtn.classList.add('text-indigo-400', 'border-b-2', 'border-indigo-500', 'bg-slate-800/50');
-
-            if (tabId === 'dosen' || tabId === 'presensi') loadSessions();
-            if (tabId === 'rekap') loadAttendanceRecords();
-            if (tabId === 'topologi') { refreshClusterTelemetry(); loadAuditLogs(); }
-        }
-
-        // Auto-fill student data helper
         function fillStudent(nim, name) {
             document.getElementById('nim').value = nim;
             document.getElementById('student_name').value = name;
         }
 
-        // Generate Random Token
-        function generateRandomToken() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let res = '';
-            for (let i = 0; i < 6; i++) {
-                res += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            document.getElementById('new_session_token').value = res;
-        }
-
-        // Health & Telemetry Check
-        async function refreshClusterTelemetry() {
-            try {
-                const res = await fetch(`${API_BASE}/health`);
-                const data = await res.json();
-                
-                if (data.status === 'healthy') {
-                    document.getElementById('latency-backend').innerText = '0 ms';
-                    if (data.database_node && data.database_node.health) {
-                        const dbLat = data.database_node.health.latency_ms;
-                        document.getElementById('latency-db').innerText = `${dbLat} ms`;
-                    }
-                }
-            } catch (err) {
-                console.error("Cluster health check error:", err);
-                document.getElementById('latency-backend').innerText = 'ERR';
-                document.getElementById('latency-db').innerText = 'ERR';
-            }
-        }
-
-        // Load Courses
-        async function loadCourses() {
-            try {
-                const res = await fetch(`${API_BASE}/courses`);
-                const courses = await res.json();
-                const sel = document.getElementById('course_id');
-                sel.innerHTML = '<option value="">Pilih Mata Kuliah...</option>';
-                courses.forEach(c => {
-                    sel.innerHTML += `<option value="${c.id}">${c.code} - ${c.name} (${c.lecturer})</option>`;
-                });
-            } catch (e) {
-                console.error("Failed to load courses:", e);
-            }
-        }
-
-        // Load Sessions
         async function loadSessions() {
             try {
                 const res = await fetch(`${API_BASE}/sessions`);
                 const sessions = await res.json();
+                const container = document.getElementById('quick-sessions');
 
-                // Quick sessions on Presensi Tab
-                const quickContainer = document.getElementById('quick-sessions');
-                if (sessions.length === 0) {
-                    quickContainer.innerHTML = '<div class="text-xs text-slate-500 text-center py-2">Belum ada sesi aktif.</div>';
-                } else {
-                    quickContainer.innerHTML = sessions.map(s => `
-                        <div class="p-3 rounded-xl bg-slate-950 border ${s.is_active ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800'} transition">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-white text-xs">${s.course_code}</span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono ${s.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
-                                    ${s.is_active ? '● AKTIF' : 'DITUTUP'}
-                                </span>
-                            </div>
-                            <div class="text-xs text-slate-300 mt-1 line-clamp-1">${s.title}</div>
-                            <div class="mt-2.5 flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
-                                <span class="text-slate-400">Token: <strong class="text-indigo-400 font-mono">${s.token}</strong></span>
-                                <button onclick="document.getElementById('token').value = '${s.token}'; switchTab('presensi');" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium">Gunakan Token →</button>
-                            </div>
-                        </div>
-                    `).join('');
+                if (!sessions || sessions.length === 0) {
+                    container.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">Belum ada sesi perkuliahan aktif.</div>';
+                    return;
                 }
 
-                // Dosen Table Container
-                const tableContainer = document.getElementById('sessions-table-container');
-                if (sessions.length === 0) {
-                    tableContainer.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">Belum ada sesi perkuliahan. Buat di sebelah kiri.</div>';
-                } else {
-                    tableContainer.innerHTML = sessions.map(s => `
-                        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold">${s.course_code}</span>
-                                    <h4 class="font-bold text-white text-sm">${s.title}</h4>
-                                </div>
-                                <div class="text-xs text-slate-400 mt-1 flex items-center gap-3">
-                                    <span>Token: <strong class="font-mono text-indigo-400 font-bold">${s.token}</strong></span>
-                                    <span>•</span>
-                                    <span>Hadir: <strong class="text-emerald-400">${s.total_attendees} Mahasiswa</strong></span>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <button onclick="toggleSession(${s.id})" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${s.is_active ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'}">
-                                    ${s.is_active ? 'Tutup Sesi' : 'Buka Kembali'}
-                                </button>
-                            </div>
+                container.innerHTML = sessions.map(s => `
+                    <div class="p-3.5 rounded-xl bg-slate-950 border ${s.is_active ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800'} transition">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-white text-xs">${s.course_code}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${s.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+                                ${s.is_active ? '● BUKA' : 'DITUTUP'}
+                            </span>
                         </div>
-                    `).join('');
-                }
-
+                        <div class="text-xs text-slate-300 mt-1 line-clamp-1 font-medium">${s.title}</div>
+                        <div class="mt-2.5 flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
+                            <span class="text-slate-400">Token: <strong class="text-indigo-400 font-mono font-bold">${s.token}</strong></span>
+                            ${s.is_active ? `<button onclick="document.getElementById('token').value = '${s.token}'; window.scrollTo({top: 0, behavior: 'smooth'});" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold">Gunakan Token →</button>` : '<span class="text-[10px] text-slate-500">Tidak Menerima</span>'}
+                        </div>
+                    </div>
+                `).join('');
             } catch (err) {
                 console.error("Failed to load sessions:", err);
             }
         }
 
-        // Handle Create Session
-        async function handleCreateSession(e) {
-            e.preventDefault();
-            const course_id = parseInt(document.getElementById('course_id').value);
-            const title = document.getElementById('session_title').value;
-            const token = document.getElementById('new_session_token').value;
-            const duration_minutes = parseInt(document.getElementById('session_duration').value);
-
-            try {
-                const res = await fetch(`${API_BASE}/sessions`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ course_id, title, token, duration_minutes })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || 'Gagal membuat sesi');
-
-                alert(`Sesi berhasil dibuat dengan Token: ${data.token}`);
-                document.getElementById('session_title').value = '';
-                document.getElementById('new_session_token').value = '';
-                loadSessions();
-            } catch (err) {
-                alert(err.message);
-            }
-        }
-
-        // Toggle Session Active Status
-        async function toggleSession(id) {
-            try {
-                const res = await fetch(`${API_BASE}/sessions/${id}/toggle`, { method: 'PUT' });
-                if (res.ok) {
-                    loadSessions();
-                } else {
-                    const d = await res.json();
-                    alert(d.detail || "Gagal mengubah status sesi");
-                }
-            } catch (e) {
-                alert("Error: " + e.message);
-            }
-        }
-
-        // Handle Submit Attendance
         async function handleAttendanceSubmit(e) {
             e.preventDefault();
             const alertBox = document.getElementById('attend-alert');
             const alertText = document.getElementById('attend-alert-text');
-            const alertIcon = document.getElementById('attend-alert-icon');
             const btn = document.getElementById('btn-submit-attend');
 
             const token = document.getElementById('token').value;
@@ -837,7 +248,7 @@
             const status = document.getElementById('status').value;
 
             btn.disabled = true;
-            btn.innerHTML = '<span>Memproses via Tailscale Mesh...</span>';
+            btn.innerHTML = '<span>Memverifikasi ke Database...</span>';
 
             try {
                 const res = await fetch(`${API_BASE}/attend`, {
@@ -853,93 +264,29 @@
                     alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-300');
                     alertText.innerHTML = `
                         <strong>Berhasil!</strong> ${data.message}<br>
-                        <span class="text-xs font-mono opacity-80">Sesi: ${data.session_title} • Node: ${data.processed_by}</span>
+                        <span class="text-xs font-mono opacity-80">Sesi: ${data.session_title} • Diproses oleh Node: ${data.processed_by}</span>
                     `;
                     document.getElementById('nim').value = '';
                     document.getElementById('student_name').value = '';
                     loadSessions();
                 } else {
                     alertBox.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
-                    alertText.innerHTML = `<strong>Gagal:</strong> ${data.detail || 'Terjadi kesalahan sistem'}`;
+                    alertText.innerHTML = `<strong>Presensi Gagal:</strong> ${data.detail || 'Terjadi kesalahan sistem'}`;
                 }
             } catch (err) {
                 alertBox.classList.remove('hidden');
                 alertBox.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
-                alertText.innerHTML = `<strong>Koneksi Error:</strong> ${err.message}`;
+                alertText.innerHTML = `<strong>Koneksi Error:</strong> Tidak dapat menghubungi backend terdistribusi (${err.message})`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<span>Kirim Presensi</span><i data-lucide="send" class="w-4 h-4"></i>';
+                btn.innerHTML = '<span>Kirim Presensi Sekarang</span><i data-lucide="send" class="w-4 h-4"></i>';
                 lucide.createIcons();
             }
         }
 
-        // Load Attendance Records Table
-        async function loadAttendanceRecords() {
-            const tbody = document.getElementById('attendance-table-body');
-            tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">Memuat data dari PostgreSQL via Tailscale...</td></tr>';
-            
-            try {
-                const res = await fetch(`${API_BASE}/attendances`);
-                const rows = await res.json();
-
-                if (!rows || rows.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">Belum ada mahasiswa yang presensi.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = rows.map(r => `
-                    <tr class="hover:bg-slate-900/50 transition">
-                        <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${new Date(r.time).toLocaleString('id-ID')}</td>
-                        <td class="py-3 px-4 font-mono text-indigo-400 font-semibold">${r.nim}</td>
-                        <td class="py-3 px-4 text-white font-medium">${r.name}</td>
-                        <td class="py-3 px-4 text-slate-300">${r.course || 'IF3105'} - ${r.session_title}</td>
-                        <td class="py-3 px-4">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${r.status === 'HADIR' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400'}">
-                                ${r.status}
-                            </span>
-                        </td>
-                        <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${r.client_ip || '-'}</td>
-                        <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${r.node}</td>
-                    </tr>
-                `).join('');
-
-            } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-rose-400">Gagal memuat data: ${err.message}</td></tr>`;
-            }
-        }
-
-        // Load Audit Logs
-        async function loadAuditLogs() {
-            const container = document.getElementById('logs-container');
-            container.innerHTML = '<div class="text-slate-500">Mengambil log...</div>';
-            try {
-                const res = await fetch(`${API_BASE}/logs`);
-                const logs = await res.json();
-                if (logs.length === 0) {
-                    container.innerHTML = '<div class="text-slate-500">Belum ada log transaksi.</div>';
-                    return;
-                }
-                container.innerHTML = logs.map(l => `
-                    <div class="p-2 rounded bg-slate-950 border border-slate-900 flex items-start gap-2">
-                        <span class="text-slate-500 shrink-0">[${new Date(l.timestamp).toLocaleTimeString()}]</span>
-                        <span class="text-indigo-400 shrink-0 font-bold">[${l.node}]</span>
-                        <span class="text-emerald-400 shrink-0">${l.action}:</span>
-                        <span class="text-slate-300 break-all">${l.details}</span>
-                    </div>
-                `).join('');
-            } catch (e) {
-                container.innerHTML = `<div class="text-rose-400">Gagal memuat log: ${e.message}</div>`;
-            }
-        }
-
-        // Initial setup
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            checkAuth();
-            refreshClusterTelemetry();
-            loadCourses();
             loadSessions();
-            setInterval(refreshClusterTelemetry, 10000);
         });
     </script>
 </body>
